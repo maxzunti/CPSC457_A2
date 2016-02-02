@@ -1,0 +1,26 @@
+idk.o: idk.cc \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../testoptions.h
+schedAffinityTest.o: schedAffinityTest.cc \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../testoptions.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/syscalls.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/kostypes.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/pthread.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/syscalls.h
+threadtest.o: threadtest.cc \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../testoptions.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/syscalls.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/kostypes.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/pthread.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/syscalls.h
+systest.o: systest.cc \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../testoptions.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/syscalls.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/kostypes.h
+manythread.o: manythread.cc \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../testoptions.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/syscalls.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/kostypes.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/pthread.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../include/syscalls.h
+kbloop.o: kbloop.cc \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/user/../testoptions.h

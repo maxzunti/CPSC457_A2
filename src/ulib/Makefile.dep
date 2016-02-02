@@ -1,0 +1,11 @@
+libKOS.o: libKOS.cc \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../testoptions.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../include/syscalls.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../include/kostypes.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../include/kostypes.h
+pthread.o: pthread.cc \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../testoptions.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../include/syscalls.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../include/kostypes.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../include/pthread.h \
+ /home/ugd/bbajic/cpsc-457-kos-new2/src/ulib/../include/syscalls.h
