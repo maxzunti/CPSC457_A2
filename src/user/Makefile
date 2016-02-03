@@ -30,6 +30,8 @@ exec/motb: .FORCE
 	@echo > $@
 	@echo "Hello everybody! So glad to see you..." >> $@
 	@echo >> $@
+	@echo "Branko wuz here" >> $@
+	@echo >> $@
 	@echo -n "Build Date: " >> $@
 	@date >> $@
 	@echo >> $@

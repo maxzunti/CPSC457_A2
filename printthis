@@ -1,0 +1,8 @@
+Note: As I had to create a new folder while I was doing the assignment my git -diff didn't work (had to re-apply the patch after I had coded everything). Also I didn't know how to show the output.
+
+Modified files: 
+/home/ugd/bbajic/cpsc-457-kos-new2/src/kernel/syscalls.cc
+/home/ugd/bbajic/cpsc-457-kos-new2/src/main/InitProcess.cc
+/home/ugd/bbajic/cpsc-457-kos-new2/src/runtime/Scheduler.cc
+/home/ugd/bbajic/cpsc-457-kos-new2/src/runtime/Thread.h
+/home/ugd/bbajic/cpsc-457-kos-new2/src/machine/Machine.cc
