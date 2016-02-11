@@ -57,10 +57,21 @@ void kosMain() {
     KOUT::outl("schedparam information not found");
   } else {
     FileAccess f(iter2->second);
+    const char * smgName = "schedMinGranularity =";
+    unsigned int x = 0;
     for (;;) {
       char c;
       if (f.read(&c, 1) == 0) break;
-      KOUT::out1(c);
+      if (c == smgName[x]) {
+        x++;
+        KOUT::outl("x = ", x, "strlen = ", strlen(smgName));
+        if (x == strlen(smgName)) // If found, read from =
+            // After this point, get next num
+            KOUT::outl("Found string!");
+      } else {
+        x = 0;
+      }
+           
     }
     KOUT::outl();
   }
