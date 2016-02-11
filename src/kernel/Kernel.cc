@@ -21,6 +21,7 @@
 #include "world/Access.h"
 #include "machine/Machine.h"
 #include "devices/Keyboard.h"
+#include "devices/RTC.h"
 
 #include "main/UserMain.h"
 
@@ -74,6 +75,24 @@ void kosMain() {
     }
     KOUT::outl();
   }
+
+
+
+  
+  mword start_time = CPU::readTSC();
+  KOUT::outl(start_time);
+  Clock::wait(1024);
+  mword end_time = CPU::readTSC();
+  KOUT::outl(end_time);
+  mword result = end_time - start_time;
+  KOUT::outl(result);
+
+  //uint8_t a = CPU::in8(0x71);
+ // int b = static_cast<int>(a) ;
+ // KOUT::outl(b);
+  //KOUT::outl((int) CPU::in8(0x71));
+
+
 #if TESTING_TIMER_TEST
   StdErr.print(" timer test, 3 secs...");
   for (int i = 0; i < 3; i++) {

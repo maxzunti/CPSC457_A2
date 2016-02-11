@@ -17,16 +17,36 @@
 #include "machine/APIC.h"
 #include "machine/Machine.h"
 #include "devices/RTC.h"
+#include "kernel/Clock.h"
+#include "runtime/Thread.h"
+#include "kernel/AddressSpace.h"
+#include "kernel/Clock.h"
+#include "kernel/Output.h"
+#include "world/Access.h"
+#include "machine/Machine.h"
+#include "devices/Keyboard.h"
+#include "devices/RTC.h"
+
+#include "main/UserMain.h"
+
 
 void RTC::init() { // see http://wiki.osdev.org/RTC
   Machine::registerIrqSync(PIC::RTC, 0xf8);
 
   CPU::out8(0x70, CPU::in8(0x70) | 0x80); // disable NMI
-
   CPU::out8(0x70, 0x0A);             // select Status Register A
   uint8_t prev = CPU::in8(0x71);     // read current value
+  ////int b = (int) prev;
+  //KOUT::outl(b);
+  //Clock::wait(1024);  
+
   CPU::out8(0x70, 0x0A);             // select Status Register A
   CPU::out8(0x71, prev | 0x06);      // set rate to 32768 / (2^(6-1)) = 1024 Hz
+
+  //CPU::out8(0x70, 0x0A);
+ // uint8_t prev2 = CPU::in8(0x71);     // read current value
+  //int b2 = (int) prev2;
+ // KOUT::outl(b2);
 
   CPU::out8(0x70, 0x0B);             // select Status Register B
   prev = CPU::in8(0x71);             // read current value
@@ -37,3 +57,5 @@ void RTC::init() { // see http://wiki.osdev.org/RTC
 
   staticInterruptHandler();     // read RTC once -> needed to get things going
 }
+
+
