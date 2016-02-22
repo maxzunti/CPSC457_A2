@@ -1,5 +1,5 @@
 /******************************************************************************
-    Copyright © 2012-2015 Martin Karsten
+    Copyright ï¿½ 2012-2015 Martin Karsten
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,8 +22,11 @@
 #include "machine/Machine.h"
 #include "devices/Keyboard.h"
 #include "devices/RTC.h"
-
 #include "main/UserMain.h"
+#include "generic/tree.h"
+
+
+
 
 AddressSpace kernelSpace(true); // AddressSpace.h
 volatile mword Clock::tick;     // Clock.h
@@ -71,14 +74,41 @@ void kosMain() {
       } else {
         x = 0;
       }
-           
+
     }
     KOUT::outl();
   }
 
+  Tree<int> readyTree;
+
+//Test Case 1: Fetch from empty tree
+  readyTree.find(12);
+
+//Test Case 2: Insert into tree (empty tree)
+  readyTree.insert(12);
+  readyTree.insert(10);
+  int* k = readyTree.readMinNode();
+  KOUT::outl(*k);
+//Test Case 3: Deletion
+  readyTree.deleteNode(12);
+
+//Test Case 4: Trying to delete when the tree does not exist
+  readyTree.deleteNode(10);
+
+//Test Case 5: Inorder traversal (TODO)
+
+//Test Case 6: Preorder traversal (TODO)
+
+//Test Case 7: Post Order traversal (TODO)
+
+//Test Case 8: Memory allocation fails  <kASSERT>
+
+  Clock::wait(1024);
+ 
 
 
-  
+
+
   mword start_time = CPU::readTSC();
   KOUT::outl(start_time);
   Clock::wait(1024);

@@ -30,6 +30,9 @@ class Scheduler {
 
   BasicLock readyLock;
   BasicLock printLock;
+
+ // volatile mword defaultEpochLengthTicks = Kernel::defaultEpochLeng
+  //volatile mword schedMinGranularityTicks;
   
   volatile mword readyCount; 
   Tree<ThreadNode> *readyTree;
