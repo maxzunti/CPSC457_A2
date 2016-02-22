@@ -88,10 +88,10 @@ void Scheduler::enqueue(Thread& t) {
   readyLock.acquire();
   readyTree->insert(*(new ThreadNode(&t)));	
 // Compute new epoch length //
-  if defaultEpochLengthTicks >= (readyCount * schedMinGranularityTicks) {
-	EpochLengthTicks = defaultEpochLengthTicks;
- } else {
-    EpochLengthTicks = (readyCount * schedMinGranularityTicks); }
+//  if defaultEpochLengthTicks >= (readyCount * schedMinGranularityTicks) {
+//	EpochLengthTicks = defaultEpochLengthTicks;
+// } else {
+//    EpochLengthTicks = (readyCount * schedMinGranularityTicks); }
 
   bool wake = (readyCount == 0);
   readyCount += 1;						
