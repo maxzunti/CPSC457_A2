@@ -62,15 +62,33 @@ void kosMain() {
   } else {
     FileAccess f(iter2->second);
     const char * smgName = "schedMinGranularity = ";
+	const char * delName = "defaultEpochLength = ";
     unsigned int x = 0;
     for (;;) {
       char c;
       if (f.read(&c, 1) == 0) break;
       if (c == smgName[x]) {
         x++;
-        if (x == strlen(smgName)) // If found, read from =
+        if (x == strlen(smgName)) {// If found, read from =
             // After this point, get next num
-            KOUT::outl("Found string!");
+			KOUT::outl(smgName);
+			for(int i = 0; i < 2; i++) {
+				f.read(&c, 1);
+				KOUT::outl(c);
+			}
+		x = 0;
+		}
+      } else if (c == delName[x]) {
+        x++;
+        if (x == strlen(delName)) {// If found, read from =
+            // After this point, get next num
+		KOUT::outl(delName);
+		for(int i = 0; i < 1; i++) {
+				f.read(&c, 1);
+				KOUT::outl(c);
+			}
+			x = 0;
+		}
       } else {
         x = 0;
       }
