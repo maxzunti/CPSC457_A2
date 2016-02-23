@@ -25,7 +25,7 @@
 #include "main/UserMain.h"
 #include "generic/tree.h"
 
-
+#include <stdlib.h>
 
 
 AddressSpace kernelSpace(true); // AddressSpace.h
@@ -64,28 +64,33 @@ void kosMain() {
     const char * smgName = "schedMinGranularity = ";
 	const char * delName = "defaultEpochLength = ";
     unsigned int x = 0;
+	
+	int schedMinGranularity; //needs to be stored differently
+	int defaultEpochLength; //needs to be stored differently
+	
+	char smg[10];
+	char del[10];
+	
     for (;;) {
       char c;
       if (f.read(&c, 1) == 0) break;
       if (c == smgName[x]) {
         x++;
-        if (x == strlen(smgName)) {// If found, read from =
-            // After this point, get next num
-			KOUT::outl(smgName);
-			for(int i = 0; i < 2; i++) {
+        if (x == strlen(smgName)) {
+			for(int i = 0; i < 10; i++) {
 				f.read(&c, 1);
-				KOUT::outl(c);
+				if (c == '\n') break;
+				smg[i] = c;
 			}
 		x = 0;
 		}
       } else if (c == delName[x]) {
         x++;
-        if (x == strlen(delName)) {// If found, read from =
-            // After this point, get next num
-		KOUT::outl(delName);
-		for(int i = 0; i < 1; i++) {
+        if (x == strlen(delName)) {
+		for(int i = 0; i < 10; i++) {
 				f.read(&c, 1);
-				KOUT::outl(c);
+				if (c == '\n') break;
+				del[i] = c;
 			}
 			x = 0;
 		}
@@ -94,7 +99,14 @@ void kosMain() {
       }
 
     }
-    KOUT::outl();
+	schedMinGranularity = atoi(smg);
+	defaultEpochLength = atoi(del);
+	
+	KOUT::outl(smgName);
+	KOUT::outl(schedMinGranularity);
+	KOUT::outl(delName);
+	KOUT::outl(defaultEpochLength);
+	KOUT::outl();
   }
 
   Tree<int> readyTree;
