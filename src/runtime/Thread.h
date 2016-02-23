@@ -32,6 +32,7 @@ class Thread : public EmbeddedList<Thread>::Link {
   vaddr stackPointer;       // holds stack pointer while thread inactive
   vaddr stackBottom;        // bottom of allocated memory for thread/stack
   size_t stackSize;         // size of allocated memory
+  mword isAsleep; // Added for vRuntime updating
 
   mword priority;           // scheduling priority
   mword vRuntime;			// virtual runtime, needed to sort the tree

@@ -84,14 +84,21 @@ static inline void unlock(BasicLock &l, Args&... a) {
 	should be added to the tree
 ***********************************/
 void Scheduler::enqueue(Thread& t) {
+  if (Thread->isAsleep == true) {
+	Thread->vRuntime = Thread->vRuntime + minvRuntime;
+  }  
+  else {
+	Thread->vRuntime = minvRuntime;  
+  } 
   GENASSERT1(t.priority < maxPriority, t.priority);
   readyLock.acquire();
   readyTree->insert(*(new ThreadNode(&t)));	
-// Compute new epoch length //
-//  if defaultEpochLengthTicks >= (readyCount * schedMinGranularityTicks) {
-//	EpochLengthTicks = defaultEpochLengthTicks;
-// } else {
-//    EpochLengthTicks = (readyCount * schedMinGranularityTicks); }
+  // Compute new epoch length // TODO: need (a) defaultEpochLengthTicks & (b) SchedMinGranularityTicks
+  if defaultEpochLengthTicks >= (readyCount * schedMinGranularityTicks) {
+	EpochLengthTicks = defaultEpochLengthTicks;
+  } else {
+    EpochLengthTicks = (readyCount * schedMinGranularityTicks); }
+	
 
   bool wake = (readyCount == 0);
   readyCount += 1;						
@@ -118,11 +125,32 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 		switchThread(target);				
 	}
 	
+	//update the vRuntime
+	(currentThread->vRuntime) = (currentThread->vRuntime) + (t / (currentThread->Priority)); //TODO : t = # of TSC ticks between two consecutive timer interrupt
+																							 //       p = priority
+																							 // I think t is the "result" variable in Kernel.cc
+																							 
+	if (currentThread->vRuntime) >= schedMinGranularityTicks { // If the currently running task already ran for minGranTicks then...
+		
+		if (readyTree->readMinNode()) < (currentThread->vRuntime) {
+			readyTree->insert(*(new ThreadNode(currentThread))); //Insert the currently running task back into the ready tree
+			minvRuntime = readyTree->readMinNode() // Update minvRuntime
+			switchThread(readyTree->popMinNode()); // Not sure if this would work	(TODO)
+		}	
+		else {
+			// Continue running with the currently running task
+		}
+	}	
+	else {
+		// Continue running with the currently running task
+	}	
+	
 	//Check if it is time to switch the thread on the current scheduler
-	if(switchTest(currentThread)){
+/*	if(switchTest(currentThread)){
 		//Switch the served thread on the current scheduler
 		switchThread(this);	
 	}
+*/	
 }
 
 /***********************************
@@ -131,7 +159,7 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	and start serving the next
 	one
 ***********************************/
-bool Scheduler::switchTest(Thread* t){
+bool Scheduler::switchTest(Thread* t){ //TODO: Here we must compare the vRuntime of the leftmost node to the current threads runtime 
 	t->vRuntime++;
 	if (t->vRuntime % 10 == 0)
 		return true;
@@ -168,7 +196,11 @@ threadFound:
   GENASSERTN(currThread && nextThread && nextThread != currThread, currThread, ' ', nextThread);
 
   if (target) currThread->nextScheduler = target; // yield/preempt to given processor
-  else currThread->nextScheduler = this;          // suspend/resume to same processor
+  else {
+	  currThread->isAsleep = true; // Added ~~~~~
+      currThread->vRuntime = currThread->vRuntime - minvRuntime;	  
+	  currThread->nextScheduler = this;          // suspend/resume to same processor
+  }	  
   unlock(a...);                                   // ...thus can unlock now
   CHECK_LOCK_COUNT(1);
   Runtime::debugS("Thread switch <", (target ? 'Y' : 'S'), ">: ", FmtHex(currThread), '(', FmtHex(currThread->stackPointer), ") to ", FmtHex(nextThread), '(', FmtHex(nextThread->stackPointer), ')');

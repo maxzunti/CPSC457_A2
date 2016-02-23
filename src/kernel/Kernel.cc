@@ -101,7 +101,7 @@ void kosMain() {
 
 //Test Case 7: Post Order traversal (TODO)
 
-//Test Case 8: Memory allocation fails  <kASSERT>
+//Test Case 8: Memory allocation fails  (TODO: use kASSERT)
 
   Clock::wait(1024);
  
