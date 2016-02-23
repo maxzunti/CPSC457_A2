@@ -22,6 +22,46 @@ public:
 		return root==NULL;
 	}
 
+    void inorder() {
+        inorderRecurse(root);
+    }
+
+    void inorderRecurse(node* localRoot) {
+        if (!localRoot) return;
+        node* cur = localRoot;
+        inorderRecurse(cur->l);
+        KOUT::outl(cur->item);
+        inorderRecurse(cur->r);
+    }
+
+    void preorder() {
+        preorderRecurse(root);
+    }
+
+    void preorderRecurse(node* localRoot) {
+        if (!localRoot) return;
+        KOUT::outl(localRoot->item);
+        preorderRecurse(localRoot->l);
+        preorderRecurse(localRoot->r);
+    }
+
+    void postorder() {
+        postorderRecurse(root);
+    }
+
+    void postorderRecurse(node* localRoot) {
+        if (!localRoot) return;
+        postorderRecurse(localRoot->l);
+        postorderRecurse(localRoot->r);
+        KOUT::outl(localRoot->item);
+    }
+
+    node* getMaxNode() const {
+        node *cur = root;
+        while (cur->r) { cur = cur->r; }
+        return cur;
+    }
+
     T* readMinNode() const {
         node *cur = root;
         while (cur->l){ cur=cur->l; }
