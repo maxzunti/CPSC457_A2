@@ -115,21 +115,33 @@ void kosMain() {
   readyTree.find(12);
 
 //Test Case 2: Insert into tree (empty tree)
-  readyTree.insert(12);
-  readyTree.insert(10);
+  readyTree.insert(0);
+  readyTree.insert(1);
+  readyTree.insert(2);
+  readyTree.insert(3);
+  readyTree.insert(4);
+  readyTree.insert(5);
+  readyTree.insert(6);
+  readyTree.insert(7);
   int* k = readyTree.readMinNode();
   KOUT::outl(*k);
 //Test Case 3: Deletion
-  readyTree.deleteNode(12);
+  readyTree.deleteNode(7);
 
 //Test Case 4: Trying to delete when the tree does not exist
   readyTree.deleteNode(10);
 
-//Test Case 5: Inorder traversal (TODO)
+//Test Case 5: Inorder traversal
+  KOUT::outl("Testing inorder: ");
+  readyTree.inorder();
 
-//Test Case 6: Preorder traversal (TODO)
+//Test Case 6: Preorder traversal
+  KOUT::outl("Testing preorder: ");
+  readyTree.preorder();
 
-//Test Case 7: Post Order traversal (TODO)
+//Test Case 7: Post Order traversal
+  KOUT::outl("Testing postorder: ");
+  readyTree.postorder();
 
 //Test Case 8: Memory allocation fails  <kASSERT>
 
