@@ -23,6 +23,7 @@
 class Scheduler;
 class UnblockInfo;
 
+
 class Thread : public EmbeddedList<Thread>::Link {
 
   friend class Scheduler;   // Scheduler accesses many internals
@@ -32,7 +33,6 @@ class Thread : public EmbeddedList<Thread>::Link {
   vaddr stackPointer;       // holds stack pointer while thread inactive
   vaddr stackBottom;        // bottom of allocated memory for thread/stack
   size_t stackSize;         // size of allocated memory
-  mword isAsleep; // Added for vRuntime updating
 
   mword priority;           // scheduling priority
   mword vRuntime;			// virtual runtime, needed to sort the tree
@@ -58,6 +58,7 @@ protected:
   static Thread* create(vaddr mem, size_t ss);
 
 public:
+  bool isAsleep;
   static Thread* create(size_t ss);
   static Thread* create();
   void destroy();

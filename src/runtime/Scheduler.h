@@ -31,9 +31,9 @@ class Scheduler {
   BasicLock readyLock;
   BasicLock printLock;
   // For assign 2 //
-  volatile mword defaultEpochLengthTicks;
-  volatile mword schedMinGranularityTicks;
+  volatile mword EpochLengthTicks;
   volatile mword minvRuntime;
+
   
   volatile mword readyCount; 
   Tree<ThreadNode> *readyTree;
@@ -53,7 +53,10 @@ class Scheduler {
 
 public:
   Scheduler();
-  
+
+  static mword result;
+  static mword defaultEpochLengthTicks;
+  static mword schedMinGranularityTicks; 
   bool switchTest(Thread* t);
   void setPartner(Scheduler& s) { partner = &s; }
   static void resume(Thread& t);

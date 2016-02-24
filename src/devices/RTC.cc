@@ -48,7 +48,7 @@ void RTC::init() { // see http://wiki.osdev.org/RTC
   //CPU::out8(0x70, 0x0A);
  // uint8_t prev2 = CPU::in8(0x71);     // read current value
   //int b2 = (int) prev2;
- // KOUT::outl(b2);
+  //KOUT::outl(frequency);
 
   CPU::out8(0x70, 0x0B);             // select Status Register B
   prev = CPU::in8(0x71);             // read current value

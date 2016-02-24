@@ -24,6 +24,7 @@
 #include "devices/RTC.h"
 #include "main/UserMain.h"
 #include "generic/tree.h"
+#include <stdlib.h>
 
 
 
@@ -62,21 +63,63 @@ void kosMain() {
   } else {
     FileAccess f(iter2->second);
     const char * smgName = "schedMinGranularity = ";
+	const char * delName = "defaultEpochLength = ";
     unsigned int x = 0;
+	
+	int schedMinGranularity; //needs to be stored differently
+	int defaultEpochLength; //needs to be stored differently
+	
+	char smg[10];
+	char del[10];
+	
     for (;;) {
       char c;
       if (f.read(&c, 1) == 0) break;
       if (c == smgName[x]) {
         x++;
-        if (x == strlen(smgName)) // If found, read from =
-            // After this point, get next num
-            KOUT::outl("Found string!");
+        if (x == strlen(smgName)) {
+			for(int i = 0; i < 10; i++) {
+				f.read(&c, 1);
+				if (c == '\n') break;
+				smg[i] = c;
+			}
+		x = 0;
+		}
+      } else if (c == delName[x]) {
+        x++;
+        if (x == strlen(delName)) {
+		for(int i = 0; i < 10; i++) {
+				f.read(&c, 1);
+				if (c == '\n') break;
+				del[i] = c;
+			}
+			x = 0;
+		}
       } else {
         x = 0;
       }
 
     }
-    KOUT::outl();
+	schedMinGranularity = atoi(smg);
+	defaultEpochLength = atoi(del);
+	
+	KOUT::outl(smgName);
+	KOUT::outl(schedMinGranularity);
+	KOUT::outl(delName);
+	KOUT::outl(defaultEpochLength);
+	KOUT::outl();
+
+    mword start_time = CPU::readTSC();
+    KOUT::outl(start_time);
+    Clock::wait(1024);
+    mword end_time = CPU::readTSC();
+    KOUT::outl(end_time);
+    mword result2 = end_time - start_time;
+    KOUT::outl(result2);
+
+    Scheduler::result = result2;
+    Scheduler::schedMinGranularityTicks = (schedMinGranularity/1000)*result2;
+    Scheduler::defaultEpochLengthTicks = (defaultEpochLength/1000)*result2;
   }
 
   Tree<int> readyTree;
@@ -101,7 +144,7 @@ void kosMain() {
 
 //Test Case 7: Post Order traversal (TODO)
 
-//Test Case 8: Memory allocation fails  (TODO: use kASSERT)
+//Test Case 8: Memory allocation fails  (TODO: use T)
 
   Clock::wait(1024);
  
@@ -109,18 +152,7 @@ void kosMain() {
 
 
 
-  mword start_time = CPU::readTSC();
-  KOUT::outl(start_time);
-  Clock::wait(1024);
-  mword end_time = CPU::readTSC();
-  KOUT::outl(end_time);
-  mword result = end_time - start_time;
-  KOUT::outl(result);
 
-  //uint8_t a = CPU::in8(0x71);
- // int b = static_cast<int>(a) ;
- // KOUT::outl(b);
-  //KOUT::outl((int) CPU::in8(0x71));
 
 
 #if TESTING_TIMER_TEST
