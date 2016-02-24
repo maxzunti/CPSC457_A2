@@ -21,7 +21,8 @@
 #include "kernel/Output.h"
 #include "world/Access.h"
 #include "machine/Machine.h"
-#include "devices/Keyboard.h"	   
+#include "devices/Keyboard.h"	
+#include "kernel/Clock.h"   
 	   
 /***********************************
     Used as a node in the tree to 
@@ -94,6 +95,7 @@ static inline void unlock(BasicLock &l, Args&... a) {
 void Scheduler::enqueue(Thread& t) {
   if (t.isAsleep == true) {
 	t.vRuntime = t.vRuntime + minvRuntime;
+    t.isAsleep == false;
   }  
   else {
 	t.vRuntime = minvRuntime;  
@@ -121,6 +123,15 @@ void Scheduler::enqueue(Thread& t) {
 	interrupt (per Scheduler)
 ***********************************/
 void Scheduler::preempt(){		// IRQs disabled, lock count inflated
+
+
+    mword start_time = CPU::readTSC();
+    KOUT::outl(start_time);
+   // Clock::wait(1024);
+    mword end_time = CPU::readTSC();
+    KOUT::outl(end_time);
+    mword result2 = end_time - start_time;
+    KOUT::outl(result2);
 	//Get current running thread
 	Thread* currentThread = Runtime::getCurrThread();
 
@@ -136,6 +147,8 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	}
 */	
 	//update the vRuntime
+	KOUT::outl(result); //test (REMOVE LATER)
+	KOUT::outl(currentThread->priority);
 	(currentThread->vRuntime) = (currentThread->vRuntime) + (result / (currentThread->priority));
 
 	
@@ -143,6 +156,7 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	if ((currentThread->vRuntime) >= schedMinGranularityTicks) { // If the currently running task already ran for minGranTicks then...
 		
 		if ((readyTree->readMinNode()->th->vRuntime) < (currentThread->vRuntime)) {
+			KOUT::outl("im here!");
 			readyTree->insert(*(new ThreadNode(currentThread))); //Insert the currently running task back into the ready tree
 			minvRuntime = readyTree->readMinNode()->th->vRuntime; // Update minvRuntime to be the leftmost nodes vRuntime
 			target = readyTree->readMinNode()->th->getAffinity();
