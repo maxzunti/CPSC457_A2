@@ -23,6 +23,7 @@
 class Scheduler;
 class UnblockInfo;
 
+
 class Thread : public EmbeddedList<Thread>::Link {
 
   friend class Scheduler;   // Scheduler accesses many internals
@@ -57,6 +58,7 @@ protected:
   static Thread* create(vaddr mem, size_t ss);
 
 public:
+  bool isAsleep;
   static Thread* create(size_t ss);
   static Thread* create();
   void destroy();

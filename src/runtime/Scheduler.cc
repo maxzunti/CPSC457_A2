@@ -23,7 +23,8 @@
 #include "machine/Machine.h"
 #include "devices/Keyboard.h"	   
 
-
+#include "devices/Keyboard.h"	
+#include "kernel/Clock.h"   
 	   
 /***********************************
     Used as a node in the tree to 
@@ -63,6 +64,10 @@ class ThreadNode{
 
 };	   
 
+// Providing space for static "result"
+mword Scheduler::result = -1;
+mword Scheduler::defaultEpochLengthTicks = -1;
+mword Scheduler::schedMinGranularityTicks = -1; 
 
 	   
 /***********************************
@@ -82,6 +87,8 @@ Scheduler::Scheduler() : readyCount(0), preemption(0), resumption(0), partner(th
 	//Add the idle thread to the tree
 	readyTree->insert(*(new ThreadNode(idleThread)));
 	readyCount += 1;
+
+	minvRuntime = idleThread->vRuntime;
 }
 
 /***********************************
@@ -100,14 +107,23 @@ static inline void unlock(BasicLock &l, Args&... a) {
 	should be added to the tree
 ***********************************/
 void Scheduler::enqueue(Thread& t) {
+  if (t.isAsleep == true) {
+	t.vRuntime = t.vRuntime + minvRuntime;
+    t.isAsleep == false;
+  }  
+  else {
+	t.vRuntime = minvRuntime;  
+  } 
   GENASSERT1(t.priority < maxPriority, t.priority);
   readyLock.acquire();
   readyTree->insert(*(new ThreadNode(&t)));	
-// Compute new epoch length //
-//  if defaultEpochLengthTicks >= (readyCount * schedMinGranularityTicks) {
-//	EpochLengthTicks = defaultEpochLengthTicks;
-// } else {
-//    EpochLengthTicks = (readyCount * schedMinGranularityTicks); }
+  // Compute new epoch length 
+  if (defaultEpochLengthTicks >= (readyCount * schedMinGranularityTicks)) {
+	EpochLengthTicks = defaultEpochLengthTicks;
+  } else {
+    EpochLengthTicks = (readyCount * schedMinGranularityTicks); 
+  }
+	
 
   bool wake = (readyCount == 0);
   readyCount += 1;						
@@ -121,6 +137,15 @@ void Scheduler::enqueue(Thread& t) {
 	interrupt (per Scheduler)
 ***********************************/
 void Scheduler::preempt(){		// IRQs disabled, lock count inflated
+
+
+    mword start_time = CPU::readTSC();
+    KOUT::outl(start_time);
+   // Clock::wait(1024);
+    mword end_time = CPU::readTSC();
+    KOUT::outl(end_time);
+    mword result2 = end_time - start_time;
+    KOUT::outl(result2);
 	//Get current running thread
 	Thread* currentThread = Runtime::getCurrThread();
 
@@ -129,16 +154,42 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	
 	//Check if the thread should move to a new scheduler
 	//(based on the affinity)
+/*
 	if(target != this && target){						
 		//Switch the served thread on the target scheduler
 		switchThread(target);				
 	}
+*/	
+	//update the vRuntime
+	KOUT::outl(result); //test (REMOVE LATER)
+	KOUT::outl(currentThread->priority);
+	(currentThread->vRuntime) = (currentThread->vRuntime) + (result / (currentThread->priority));
+
 	
+																							 
+	if ((currentThread->vRuntime) >= schedMinGranularityTicks) { // If the currently running task already ran for minGranTicks then...
+		
+		if ((readyTree->readMinNode()->th->vRuntime) < (currentThread->vRuntime)) {
+			KOUT::outl("im here!");
+			readyTree->insert(*(new ThreadNode(currentThread))); //Insert the currently running task back into the ready tree
+			minvRuntime = readyTree->readMinNode()->th->vRuntime; // Update minvRuntime to be the leftmost nodes vRuntime
+			target = readyTree->readMinNode()->th->getAffinity();
+			switchThread(target); //Switch the served thread on the target scheduler
+		}	
+		else {
+			// Continue running with the currently running task
+		}
+	}	
+	else {
+		// Continue running with the currently running task
+	}	
+/*	
 	//Check if it is time to switch the thread on the current scheduler
 	if(switchTest(currentThread)){
 		//Switch the served thread on the current scheduler
 		switchThread(this);	
 	}
+*/
 }
 
 /***********************************
@@ -147,7 +198,7 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	and start serving the next
 	one
 ***********************************/
-bool Scheduler::switchTest(Thread* t){
+bool Scheduler::switchTest(Thread* t){ //TODO: Here we must compare the vRuntime of the leftmost node to the current threads runtime 
 	t->vRuntime++;
 	if (t->vRuntime % 10 == 0)
 		return true;
@@ -165,6 +216,8 @@ inline void Scheduler::switchThread(Scheduler* target, Args&... a) {
   CHECK_LOCK_MIN(sizeof...(Args));
   Thread* nextThread;
   readyLock.acquire();
+
+
 	
   if(!readyTree->empty()){
 	  nextThread = readyTree->popMinNode()->th;	
@@ -185,12 +238,23 @@ threadFound:
 
   if (target) currThread->nextScheduler = target; // yield/preempt to given processor
   else currThread->nextScheduler = this;          // suspend/resume to same processor
+	  currThread->isAsleep = true; // Added ~~~~~
+      currThread->vRuntime = currThread->vRuntime - minvRuntime; // Added ~~~	  
+
   unlock(a...);                                   // ...thus can unlock now
   CHECK_LOCK_COUNT(1);
   Runtime::debugS("Thread switch <", (target ? 'Y' : 'S'), ">: ", FmtHex(currThread), '(', FmtHex(currThread->stackPointer), ") to ", FmtHex(nextThread), '(', FmtHex(nextThread->stackPointer), ')');
 
   Runtime::MemoryContext& ctx = Runtime::getMemoryContext();
   Runtime::setCurrThread(nextThread);
+
+  // Calculate the tasks time slice //
+
+  //mword totalPriority = 0;
+  //// Insert code here to add up all the priorities in readyTree
+  //schedMinGranularityTicks = (EpocLengthTicks * nextThread->priority) / totalPriority;
+  
+
   Thread* prevThread = stackSwitch(currThread, target, &currThread->stackPointer, nextThread->stackPointer);
   // REMEMBER: Thread might have migrated from other processor, so 'this'
   //           might not be currThread's Scheduler object anymore.
@@ -253,3 +317,5 @@ extern "C" void invokeThread(Thread* prevThread, Runtime::MemoryContext* ctx, fu
   func(arg1, arg2, arg3);
   Runtime::getScheduler()->terminate();
 }
+
+
