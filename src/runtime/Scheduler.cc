@@ -22,6 +22,8 @@
 #include "world/Access.h"
 #include "machine/Machine.h"
 #include "devices/Keyboard.h"	   
+
+
 	   
 /***********************************
     Used as a node in the tree to 
@@ -47,7 +49,21 @@ class ThreadNode{
 	ThreadNode(Thread *t){
 		th = t;
 	}
+        mword sumPriorities(Tree<ThreadNode> *readyTree) {
+            return sumPrioritiesRecurse(readyTree->root);
+        }
+
+        mword sumPrioritiesRecurse(Tree<ThreadNode>::node * localRoot) {
+        if (!localRoot) return 0;
+            return localRoot->item.th->priority
+                    + sumPrioritiesRecurse(localRoot->r)
+                    + sumPrioritiesRecurse(localRoot->l);
+        }
+
+
 };	   
+
+
 	   
 /***********************************
 			Constructor
