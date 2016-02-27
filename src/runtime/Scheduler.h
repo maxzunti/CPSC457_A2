@@ -66,8 +66,6 @@ public:
   void suspend(BasicLock& lk);
   void suspend(BasicLock& lk1, BasicLock& lk2);
   void terminate() __noreturn;
- // static mword sumPriorities(Tree<ThreadNode> *readyTree);
- // static mword sumPrioritiesRecurse(Tree<ThreadNode>::node * localRoot);
 };
 
 #endif /* _Scheduler_h_ */

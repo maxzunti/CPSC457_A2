@@ -120,8 +120,6 @@ void Scheduler::enqueue(Thread& t) {
   readyLock.acquire();
   readyTree->insert(*(new ThreadNode(&t)));	
   // Compute new epoch length 
- // KOUT::outl(Kernel::defaultEpochLengthTicks);
-  //KOUT::outl(Scheduler::schedMinGranularityTicks);
   if (Scheduler::defaultEpochLengthTicks >= (readyCount * Scheduler::schedMinGranularityTicks)) {
 	Scheduler::EpochLengthTicks = Scheduler::defaultEpochLengthTicks;
   } else {
@@ -142,12 +140,7 @@ void Scheduler::enqueue(Thread& t) {
 ***********************************/
 void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 
-	//KOUT::outl("running!");
-
-   // KOUT::outl(Kernel::defaultEpochLengthTicks);
-    //KOUT::outl(Kernel::schedMinGranularityTicks);
 	//Get current running thread
-	//KOUT::outl(Scheduler::schedMinGranularityTicks);
 	Thread* currentThread = Runtime::getCurrThread();
 
 	//Get its target scheduler
@@ -155,49 +148,16 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	
 	//Check if the thread should move to a new scheduler
 	//(based on the affinity)
-
 	if(target != this && target){						
 		//Switch the served thread on the target scheduler
 		KOUT::outl("here though?");
 		switchThread(target);				
 	}
 
-
-
 	//update the vRuntime //
-  //  KOUT::outl("timeslice");
-	//KOUT::outl(Scheduler::taskTimeSlice);
 	mword updatedRuntime = currentThread->vRuntime + currentThread->timeSlice;
 	currentThread->vRuntime = updatedRuntime;
-
-	//KOUT::outl("preempt");
-//	KOUT::outl(currentThread->vRuntime);
- //   KOUT::outl(Scheduler::schedMinGranularityTicks);
-
 																						 
-	/*if ((currentThread->vRuntime) >= Scheduler::schedMinGranularityTicks) { // If the currently running task already ran for minGranTicks then...
-		//KOUT::outl("hi");
-		if ((readyTree->readMinNode()->th->vRuntime) < (currentThread->vRuntime) && (readyTree->readMinNode()->th != currentThread)) {
-			//KOUT::outl("im here!");
-			//readyTree->insert(*(new ThreadNode(currentThread))); //Insert the currently running task back into the ready tree
-			Scheduler::minvRuntime = readyTree->readMinNode()->th->vRuntime; // Update minvRuntime to be the leftmost nodes vRuntime
-			//target = readyTree->readMinNode()->th->getAffinity();
-			//KOUT::outl("Before switch:");
-			//KOUT::outl(currentThread->getAffinity());
-			//KOUT::outl(target);
-			KOUT::outl("Switching to ", this, "    Target = ", target );
-				switchThread(this); //Switch the served thread on the target scheduler
-		}	
-		else {
-			// Continue running with the currently running task
-		}
-	}	
-	else {
-		// Continue running with the currently running task
-	}
-*/
-	
-	
 	//Check if it is time to switch the thread on the current scheduler
 	if(switchTest(currentThread)){
 		//Switch the served thread on the current scheduler
@@ -242,7 +202,6 @@ inline void Scheduler::switchThread(Scheduler* target, Args&... a) {
 
 	
   if(!readyTree->empty()){
-	  //KOUT::("hi");
 	  nextThread = readyTree->popMinNode()->th;	
       readyCount -= 1;
  	  goto threadFound;
@@ -258,11 +217,7 @@ threadFound:
   resumption += 1;
   Thread* currThread = Runtime::getCurrThread();
 
- // KOUT::outl("we here?");
-  //KOUT::outl(&(readyTree->readMinNode()->th));
- // KOUT::outl(&(nextThread));
- // KOUT::outl(&(currThread));
- // KOUT::outl(&(currThread));
+
   GENASSERTN(currThread && nextThread && nextThread != currThread, currThread, ' ', nextThread);
 
 
@@ -283,21 +238,11 @@ threadFound:
 
   // Insert code here to add up all the priorities in readyTree
   if(!readyTree->empty()){
-    //KOUT::outl("if1");
-  	//Scheduler::taskTimeSlice = (Scheduler::EpochLengthTicks * (nextThread->priority + 1)) / ThreadNode::sumPriorities(readyTree);
 	nextThread->timeSlice = (Scheduler::EpochLengthTicks * (nextThread->priority + 1)) / ThreadNode::sumPriorities(readyTree);
   }
   else { 
-  //  KOUT::outl("b4");
-	//KOUT::outl(Scheduler::EpochLengthTicks);
-	//Scheduler::taskTimeSlice = (Scheduler::EpochLengthTicks * (nextThread->priority + 1));
 	nextThread->timeSlice = (Scheduler::EpochLengthTicks * (nextThread->priority + 1));
-   //KOUT::outl("after:");
-	//KOUT::outl(Scheduler::taskTimeSlice);
   }
-  KOUT::outl("lol");
-  //KOUT::outl(currThread);
-  //KOUT::outl(nextThread);
   Thread* prevThread = stackSwitch(currThread, target, &currThread->stackPointer, nextThread->stackPointer);
 
 
