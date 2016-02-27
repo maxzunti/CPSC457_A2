@@ -65,6 +65,7 @@ public:
   void start(ptr_t func, ptr_t p1 = nullptr, ptr_t p2 = nullptr, ptr_t p3 = nullptr);
   void direct(ptr_t func, ptr_t p1 = nullptr, ptr_t p2 = nullptr, ptr_t p3 = nullptr, ptr_t p4 = nullptr);
   void cancel();
+  mword timeSlice;
 
   bool block(UnblockInfo* ubi) {
     GENASSERT1(this == Runtime::getCurrThread(), Runtime::getCurrThread());

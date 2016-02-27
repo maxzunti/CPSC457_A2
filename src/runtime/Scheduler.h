@@ -20,6 +20,7 @@
 #include "generic/EmbeddedContainers.h"
 #include "runtime/Runtime.h"
 #include "generic/tree.h"
+#include "runtime/globalVar.h"
 
 class Thread;
 class ThreadNode;
@@ -31,8 +32,7 @@ class Scheduler {
   BasicLock readyLock;
   BasicLock printLock;
   // For assign 2 //
-  volatile mword EpochLengthTicks;
-  volatile mword minvRuntime;
+
 
   
   volatile mword readyCount; 
@@ -53,10 +53,12 @@ class Scheduler {
 
 public:
   Scheduler();
-
-  static mword result;
+  static mword EpochLengthTicks;
+  static mword minvRuntime;
+  static mword ticksPerSecond;
   static mword defaultEpochLengthTicks;
   static mword schedMinGranularityTicks; 
+  static mword taskTimeSlice;
   bool switchTest(Thread* t);
   void setPartner(Scheduler& s) { partner = &s; }
   static void resume(Thread& t);
@@ -64,6 +66,8 @@ public:
   void suspend(BasicLock& lk);
   void suspend(BasicLock& lk1, BasicLock& lk2);
   void terminate() __noreturn;
+ // static mword sumPriorities(Tree<ThreadNode> *readyTree);
+ // static mword sumPrioritiesRecurse(Tree<ThreadNode>::node * localRoot);
 };
 
 #endif /* _Scheduler_h_ */

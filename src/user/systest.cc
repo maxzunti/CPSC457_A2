@@ -14,17 +14,19 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#include "syscalls.h"
-
-static int sysfunc() {
-  asm volatile("cli");
-  asm volatile("sti");
-  return 0;
-}
+//#include "syscalls.h"
+#include "kernel/Clock.h"
+#include "runtime/globalVar.h"
+#include <stdio.h>
+//#include "kernel/Output.h"
+volatile mword Clock::tick;
 
 int main() {
-  for (int i = 0; i < 1000; i += 1) {
-    privilege((void*)sysfunc, 0, 0, 0, 0);
-  }
-  return 0;
+    mword start_time = CPU::readTSC();
+    Clock::wait(1024);
+    mword end_time = CPU::readTSC();
+    mword result2 = end_time - start_time;
+    cout<<result2;
+    Clock::wait(10240);
+    resultVar = result2;	
 };

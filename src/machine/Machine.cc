@@ -35,17 +35,22 @@
 #include "devices/Serial.h"
 #include "gdb/Gdb.h"
 #include "syscalls.h"
+#include "runtime/globalVar.h"
+#include "main/UserMain.h"
+#include "world/Access.h"
+#include <stdlib.h>
 
 #include "machine/ACPI.h"
 
 #include <list>
 #include <map>
-
 // simple direct declarations in lieu of more header files
 extern void initCdiDrivers();
 extern bool findCdiDriver(const PCIDevice&);
 extern void lwip_init_tcpip();
 extern void kosMain();
+volatile mword Clock::tick = 0;
+
 
 // check various assumptions about data type sizes
 static_assert(sizeof(uint64_t) == sizeof(mword), "mword != uint64_t" );
@@ -285,8 +290,14 @@ void Machine::initBSP(mword magic, vaddr mbiAddr, mword idx) {
   // determine processorCount and create processorTable
   KASSERT0(apicMap.size());
   processorCount = apicMap.size();
+
+
   processorTable = knewN<Processor>(processorCount);
   schedulerTable = knewN<Scheduler>(processorCount);
+
+
+
+
   mword coreIdx = 0;
   for (const pair<uint32_t,uint32_t>& ap : apicMap) {
     DBG::outl( DBG::Scheduler, "Scheduler ", coreIdx, " at ", FmtHex(schedulerTable + coreIdx));
@@ -314,6 +325,16 @@ void Machine::initBSP(mword magic, vaddr mbiAddr, mword idx) {
 
 // on proper stack, processor initialized
 void Machine::initBSP2() {
+
+  // Defining the scheduler parameters //
+  Scheduler::ticksPerSecond = 3000000;
+  Scheduler::defaultEpochLengthTicks = (20.0/1000.0) * Scheduler::ticksPerSecond;
+  Scheduler::schedMinGranularityTicks = (4.0/1000.0) * Scheduler::ticksPerSecond;
+  Scheduler::taskTimeSlice = Scheduler::schedMinGranularityTicks;
+  Scheduler::EpochLengthTicks = Scheduler::defaultEpochLengthTicks;
+  //KOUT::outl(Scheduler::taskTimeSlice);
+
+
   DBG::outl(DBG::Boot, "********** NEW STACK ***********");
   DBG::outl(DBG::Boot, "BSP: ", LocalProcessor::getIndex(), '/', LocalProcessor::getSystemID(), '/', LocalProcessor::getApicID());
 
@@ -328,17 +349,34 @@ void Machine::initBSP2() {
   // init keyboard; must init RTC first (HW req)?
   keyboard.init();
 
+
+
   DBG::outl(DBG::Boot, "********** MULTI CORE **********");
 
   // enable interrupts (off boot stack); needed for timer waiting
   DBG::outl(DBG::Boot, "Enabling BSP interrupts...");
   LocalProcessor::initInterrupts(true);
 
+  // Recalibrate the ticksPerSecond //
+  mword start_time = CPU::readTSC();
+  //KOUT::outl("hi!");
+  //Clock::wait(1000);
+  //KOUT::outl("hi2!");
+  mword end_time = CPU::readTSC();
+  mword result = end_time - start_time;
+  Scheduler::ticksPerSecond = result;
+  //KOUT::outl("hi!3");
+  //KOUT::outl(Scheduler::ticksPerSecond);
+  //Clock::wait(100000000);
+
+
   // send test IPI to self <- reception needs interrupts enabled
   tipiTest = false;
   tipiHandler = tipiReceiver;
   sendIPI(bspIndex, APIC::TestIPI);
   while (!tipiTest) CPU::Pause();
+
+
 
   // NOTE: could use broadcast and ticket lock sequencing
   // start up APs one by one (on boot stack): APs go into long mode and halt
@@ -397,6 +435,7 @@ apDone:
   // start irq thread after cdi init -> avoid interference from device irqs
   DBG::outl(DBG::Boot, "Creating IRQ thread...");
   Thread::create()->setPriority(topPriority)->setAffinity(processorTable[0].scheduler)->start((ptr_t)asyncIrqLoop);
+
 }
 
 void Machine::bootCleanup() {

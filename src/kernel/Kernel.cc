@@ -24,13 +24,14 @@
 #include "devices/RTC.h"
 #include "main/UserMain.h"
 #include "generic/tree.h"
+#include "Kernel.h"
 #include <stdlib.h>
 
 
 
 
 AddressSpace kernelSpace(true); // AddressSpace.h
-volatile mword Clock::tick;     // Clock.h
+//volatile mword Clock::tick;     // Clock.h
 
 extern Keyboard keyboard;
 
@@ -66,8 +67,8 @@ void kosMain() {
 	const char * delName = "defaultEpochLength = ";
     unsigned int x = 0;
 	
-	int schedMinGranularity; //needs to be stored differently
-	int defaultEpochLength; //needs to be stored differently
+	mword schedMinGranularity; //needs to be stored differently
+	mword defaultEpochLength; //needs to be stored differently
 	
 	char smg[10];
 	char del[10];
@@ -108,7 +109,7 @@ void kosMain() {
 	KOUT::outl(delName);
 	KOUT::outl(defaultEpochLength);
 	KOUT::outl();
-
+/*
     mword start_time = CPU::readTSC();
     KOUT::outl(start_time);
     Clock::wait(1024);
@@ -116,10 +117,10 @@ void kosMain() {
     KOUT::outl(end_time);
     mword result2 = end_time - start_time;
     KOUT::outl(result2);
-
-    Scheduler::result = result2;
-    Scheduler::schedMinGranularityTicks = (schedMinGranularity/1000)*result2;
-    Scheduler::defaultEpochLengthTicks = (defaultEpochLength/1000)*result2;
+*/
+    //Scheduler::result = result2;
+    Scheduler::schedMinGranularityTicks = (schedMinGranularity/1000)*Scheduler::ticksPerSecond;
+    Scheduler::defaultEpochLengthTicks = (defaultEpochLength/1000)*Scheduler::ticksPerSecond;
   }
 
   Tree<int> readyTree;

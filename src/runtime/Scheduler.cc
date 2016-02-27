@@ -23,7 +23,15 @@
 #include "machine/Machine.h"
 #include "devices/Keyboard.h"	
 #include "kernel/Clock.h"   
+#include "runtime/globalVar.h"
+#include "kernel/Kernel.h"
 	   
+mword Scheduler::ticksPerSecond;
+mword Scheduler::defaultEpochLengthTicks;
+mword Scheduler::schedMinGranularityTicks;
+mword Scheduler::minvRuntime;
+mword Scheduler::EpochLengthTicks;
+mword Scheduler::taskTimeSlice;
 /***********************************
     Used as a node in the tree to 
 	reference the thread instance
@@ -48,12 +56,16 @@ class ThreadNode{
 	ThreadNode(Thread *t){
 		th = t;
 	}
+	static mword sumPriorities(Tree<ThreadNode> *readyTree) {
+		return sumPrioritiesRecurse(readyTree->root);
+	}
+
+	static mword sumPrioritiesRecurse(Tree<ThreadNode>::node * localRoot) {
+		if (!localRoot) return 0;
+		return (localRoot->item.th->priority + sumPrioritiesRecurse(localRoot->r) + sumPrioritiesRecurse(localRoot->l));
+	}
 };	   
 
-// Providing space for static "result"
-mword Scheduler::result = -1;
-mword Scheduler::defaultEpochLengthTicks = -1;
-mword Scheduler::schedMinGranularityTicks = -1; 
 
 	   
 /***********************************
@@ -74,7 +86,9 @@ Scheduler::Scheduler() : readyCount(0), preemption(0), resumption(0), partner(th
 	readyTree->insert(*(new ThreadNode(idleThread)));
 	readyCount += 1;
 
-	minvRuntime = idleThread->vRuntime;
+	Scheduler::minvRuntime = idleThread->vRuntime;
+	//KOUT::outl("constructor");
+	//KOUT::outl(minvRuntime);
 }
 
 /***********************************
@@ -93,21 +107,25 @@ static inline void unlock(BasicLock &l, Args&... a) {
 	should be added to the tree
 ***********************************/
 void Scheduler::enqueue(Thread& t) {
+  //Scheduler::minvRuntime = readyTree->readMinNode()->th->vRuntime;
   if (t.isAsleep == true) {
-	t.vRuntime = t.vRuntime + minvRuntime;
-    t.isAsleep == false;
+	t.vRuntime = t.vRuntime + Scheduler::minvRuntime;
+    t.isAsleep = false;
   }  
   else {
-	t.vRuntime = minvRuntime;  
+	t.vRuntime = Scheduler::minvRuntime;  
   } 
+
   GENASSERT1(t.priority < maxPriority, t.priority);
   readyLock.acquire();
   readyTree->insert(*(new ThreadNode(&t)));	
   // Compute new epoch length 
-  if (defaultEpochLengthTicks >= (readyCount * schedMinGranularityTicks)) {
-	EpochLengthTicks = defaultEpochLengthTicks;
+ // KOUT::outl(Kernel::defaultEpochLengthTicks);
+  //KOUT::outl(Scheduler::schedMinGranularityTicks);
+  if (Scheduler::defaultEpochLengthTicks >= (readyCount * Scheduler::schedMinGranularityTicks)) {
+	Scheduler::EpochLengthTicks = Scheduler::defaultEpochLengthTicks;
   } else {
-    EpochLengthTicks = (readyCount * schedMinGranularityTicks); 
+    Scheduler::EpochLengthTicks = ((readyCount + 1) * Scheduler::schedMinGranularityTicks); 
   }
 	
 
@@ -124,15 +142,12 @@ void Scheduler::enqueue(Thread& t) {
 ***********************************/
 void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 
+	//KOUT::outl("running!");
 
-    mword start_time = CPU::readTSC();
-    KOUT::outl(start_time);
-   // Clock::wait(1024);
-    mword end_time = CPU::readTSC();
-    KOUT::outl(end_time);
-    mword result2 = end_time - start_time;
-    KOUT::outl(result2);
+   // KOUT::outl(Kernel::defaultEpochLengthTicks);
+    //KOUT::outl(Kernel::schedMinGranularityTicks);
 	//Get current running thread
+	//KOUT::outl(Scheduler::schedMinGranularityTicks);
 	Thread* currentThread = Runtime::getCurrThread();
 
 	//Get its target scheduler
@@ -140,27 +155,38 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	
 	//Check if the thread should move to a new scheduler
 	//(based on the affinity)
-/*
+
 	if(target != this && target){						
 		//Switch the served thread on the target scheduler
+		KOUT::outl("here though?");
 		switchThread(target);				
 	}
-*/	
-	//update the vRuntime
-	KOUT::outl(result); //test (REMOVE LATER)
-	KOUT::outl(currentThread->priority);
-	(currentThread->vRuntime) = (currentThread->vRuntime) + (result / (currentThread->priority));
 
-	
-																							 
-	if ((currentThread->vRuntime) >= schedMinGranularityTicks) { // If the currently running task already ran for minGranTicks then...
-		
-		if ((readyTree->readMinNode()->th->vRuntime) < (currentThread->vRuntime)) {
-			KOUT::outl("im here!");
-			readyTree->insert(*(new ThreadNode(currentThread))); //Insert the currently running task back into the ready tree
-			minvRuntime = readyTree->readMinNode()->th->vRuntime; // Update minvRuntime to be the leftmost nodes vRuntime
-			target = readyTree->readMinNode()->th->getAffinity();
-			switchThread(target); //Switch the served thread on the target scheduler
+
+
+	//update the vRuntime //
+  //  KOUT::outl("timeslice");
+	//KOUT::outl(Scheduler::taskTimeSlice);
+	mword updatedRuntime = currentThread->vRuntime + currentThread->timeSlice;
+	currentThread->vRuntime = updatedRuntime;
+
+	//KOUT::outl("preempt");
+//	KOUT::outl(currentThread->vRuntime);
+ //   KOUT::outl(Scheduler::schedMinGranularityTicks);
+
+																						 
+	/*if ((currentThread->vRuntime) >= Scheduler::schedMinGranularityTicks) { // If the currently running task already ran for minGranTicks then...
+		//KOUT::outl("hi");
+		if ((readyTree->readMinNode()->th->vRuntime) < (currentThread->vRuntime) && (readyTree->readMinNode()->th != currentThread)) {
+			//KOUT::outl("im here!");
+			//readyTree->insert(*(new ThreadNode(currentThread))); //Insert the currently running task back into the ready tree
+			Scheduler::minvRuntime = readyTree->readMinNode()->th->vRuntime; // Update minvRuntime to be the leftmost nodes vRuntime
+			//target = readyTree->readMinNode()->th->getAffinity();
+			//KOUT::outl("Before switch:");
+			//KOUT::outl(currentThread->getAffinity());
+			//KOUT::outl(target);
+			KOUT::outl("Switching to ", this, "    Target = ", target );
+				switchThread(this); //Switch the served thread on the target scheduler
 		}	
 		else {
 			// Continue running with the currently running task
@@ -168,14 +194,16 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	}	
 	else {
 		// Continue running with the currently running task
-	}	
-/*	
+	}
+*/
+	
+	
 	//Check if it is time to switch the thread on the current scheduler
 	if(switchTest(currentThread)){
 		//Switch the served thread on the current scheduler
 		switchThread(this);	
 	}
-*/
+
 }
 
 /***********************************
@@ -185,10 +213,18 @@ void Scheduler::preempt(){		// IRQs disabled, lock count inflated
 	one
 ***********************************/
 bool Scheduler::switchTest(Thread* t){ //TODO: Here we must compare the vRuntime of the leftmost node to the current threads runtime 
-	t->vRuntime++;
+	/*t->vRuntime++;
 	if (t->vRuntime % 10 == 0)
 		return true;
-	return false;															//Otherwise return that the thread should not be switched
+	return false;		*/													//Otherwise return that the thread should not be switched
+
+	if ((t->vRuntime) >= Scheduler::schedMinGranularityTicks) { // If the currently running task already ran for minGranTicks then...
+		KOUT::outl("sMGT = ", Scheduler::schedMinGranularityTicks, "     t->vRuntime = ", t->vRuntime);
+		if ((readyTree->readMinNode()->th->vRuntime) < (t->vRuntime)) {
+			Scheduler::minvRuntime = readyTree->readMinNode()->th->vRuntime; // Update minvRuntime to be the leftmost nodes vRuntime
+			return true;
+		}	
+	}	
 }
 
 /***********************************
@@ -206,6 +242,7 @@ inline void Scheduler::switchThread(Scheduler* target, Args&... a) {
 
 	
   if(!readyTree->empty()){
+	  //KOUT::("hi");
 	  nextThread = readyTree->popMinNode()->th;	
       readyCount -= 1;
  	  goto threadFound;
@@ -220,12 +257,20 @@ threadFound:
   readyLock.release();
   resumption += 1;
   Thread* currThread = Runtime::getCurrThread();
+
+ // KOUT::outl("we here?");
+  //KOUT::outl(&(readyTree->readMinNode()->th));
+ // KOUT::outl(&(nextThread));
+ // KOUT::outl(&(currThread));
+ // KOUT::outl(&(currThread));
   GENASSERTN(currThread && nextThread && nextThread != currThread, currThread, ' ', nextThread);
 
+
+  //KOUT::outl("???");
   if (target) currThread->nextScheduler = target; // yield/preempt to given processor
   else currThread->nextScheduler = this;          // suspend/resume to same processor
 	  currThread->isAsleep = true; // Added ~~~~~
-      currThread->vRuntime = currThread->vRuntime - minvRuntime; // Added ~~~	  
+      currThread->vRuntime = (currThread->vRuntime) - (Scheduler::minvRuntime); // Added ~~~	  
 
   unlock(a...);                                   // ...thus can unlock now
   CHECK_LOCK_COUNT(1);
@@ -236,21 +281,40 @@ threadFound:
 
   // Calculate the tasks time slice //
 
-  //mword totalPriority = 0;
-  //// Insert code here to add up all the priorities in readyTree
-  //schedMinGranularityTicks = (EpocLengthTicks * nextThread->priority) / totalPriority;
-  
-
+  // Insert code here to add up all the priorities in readyTree
+  if(!readyTree->empty()){
+    //KOUT::outl("if1");
+  	//Scheduler::taskTimeSlice = (Scheduler::EpochLengthTicks * (nextThread->priority + 1)) / ThreadNode::sumPriorities(readyTree);
+	nextThread->timeSlice = (Scheduler::EpochLengthTicks * (nextThread->priority + 1)) / ThreadNode::sumPriorities(readyTree);
+  }
+  else { 
+  //  KOUT::outl("b4");
+	//KOUT::outl(Scheduler::EpochLengthTicks);
+	//Scheduler::taskTimeSlice = (Scheduler::EpochLengthTicks * (nextThread->priority + 1));
+	nextThread->timeSlice = (Scheduler::EpochLengthTicks * (nextThread->priority + 1));
+   //KOUT::outl("after:");
+	//KOUT::outl(Scheduler::taskTimeSlice);
+  }
+  KOUT::outl("lol");
+  //KOUT::outl(currThread);
+  //KOUT::outl(nextThread);
   Thread* prevThread = stackSwitch(currThread, target, &currThread->stackPointer, nextThread->stackPointer);
+
+
+  KOUT::outl("2");
   // REMEMBER: Thread might have migrated from other processor, so 'this'
   //           might not be currThread's Scheduler object anymore.
   //           However, 'this' points to prevThread's Scheduler object.
   Runtime::postResume(false, *prevThread, ctx);
+  //KOUT::outl("3");
+
   if (currThread->state == Thread::Cancelled) {
     currThread->state = Thread::Finishing;
     switchThread(nullptr);
     unreachable();
   }
+  KOUT::outl("here?");
+
 }
 
 /***********************************
@@ -303,5 +367,8 @@ extern "C" void invokeThread(Thread* prevThread, Runtime::MemoryContext* ctx, fu
   func(arg1, arg2, arg3);
   Runtime::getScheduler()->terminate();
 }
+
+
+
 
 
